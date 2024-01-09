@@ -46,8 +46,8 @@ class OnboardingScreenOneScreen extends StatelessWidget {
                               fontSize: 16.fSize,
                               fontFamily: 'Nunito',
                               fontWeight: FontWeight.w400))),
-                  SizedBox(height: 8.v),
-                  SizedBox(height: 68.v),
+                  SizedBox(height: 5.v),
+                  SizedBox(height: 10.v),
                   _buildLoginSection(context)
                 ]))));
   }
