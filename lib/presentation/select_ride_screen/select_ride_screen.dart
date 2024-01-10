@@ -3,266 +3,213 @@ import 'package:houssam_s_application4/core/app_export.dart';
 import 'package:houssam_s_application4/widgets/app_bar/appbar_leading_image.dart';
 import 'package:houssam_s_application4/widgets/app_bar/appbar_title.dart';
 import 'package:houssam_s_application4/widgets/app_bar/custom_app_bar.dart';
-import 'package:houssam_s_application4/widgets/custom_elevated_button.dart';
-import 'package:houssam_s_application4/widgets/custom_icon_button.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../sidebar_drawer/user_drawer.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
-class SelectRideScreen extends StatelessWidget {
-  const SelectRideScreen({Key? key}) : super(key: key);
+class SelectRideScreen extends StatefulWidget {
+  final String fromCity;
+  final String toCity;
+
+  const SelectRideScreen({
+    Key? key,
+    required this.fromCity,
+    required this.toCity,
+  }) : super(key: key);
+
+  @override
+  _SelectRideScreenState createState() => _SelectRideScreenState();
+}
+
+class _SelectRideScreenState extends State<SelectRideScreen> {
+  Future<List<Trip>>? futureTrips;
+
+  @override
+  void initState() {
+    super.initState();
+    futureTrips = fetchTrips(widget.fromCity, widget.toCity);
+  }
+
+  Future<List<Trip>> fetchTrips(String fromCityId, String toCityId) async {
+    print(fromCityId + " " + toCityId);
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('accessToken') ?? '';
+
+    final String url =
+        'https://dinimaak.azurewebsites.net/api/trip/query?from=$fromCityId&to=$toCityId';
+    final response = await http.get(
+      Uri.parse(url),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    print(response.statusCode);
+    if (response.statusCode == 200) {
+      List<dynamic> tripsJson = json.decode(response.body)['result'];
+      List<Trip> trips = tripsJson.map((json) => Trip.fromJson(json)).toList();
+      return trips;
+    } else {
+      throw Exception('Failed to load trips');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-        child: Scaffold(
-            appBar: _buildAppBar(context),
-            body: Container(
-                width: double.maxFinite,
-                padding: EdgeInsets.symmetric(vertical: 15.v),
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text("Select a Ride"),
+          leading: Builder(
+            builder: (BuildContext context) {
+              return IconButton(
+                icon: Icon(Icons.menu),
+                onPressed: () => Scaffold.of(context).openDrawer(),
+              );
+            },
+          ),
+        ),
+        drawer: UserDrawer(),
+        body: FutureBuilder<List<Trip>>(
+          future: futureTrips,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            }
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return Center(child: Text('No trips available.'));
+            }
+
+            List<Trip> trips = snapshot.data!;
+            Trip firstTrip = trips.first;
+
+            return Column(
+              children: [
+                Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Padding(
-                          padding: EdgeInsets.only(left: 32.h),
-                          child: Row(children: [
-                            CustomIconButton(
-                                height: 28.adaptSize,
-                                width: 28.adaptSize,
-                                padding: EdgeInsets.all(5.h),
-                                child: CustomImageView(
-                                    imagePath:
-                                        ImageConstant.imgMapPinWhiteA700)),
-                            Padding(
-                                padding: EdgeInsets.only(
-                                    left: 8.h, top: 3.v, bottom: 3.v),
-                                child: Text("Marakkech",
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            firstTrip.sourceCityName,
+                            style: TextStyle(
+                              fontSize: 18.0,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text('Departure City'),
+                        ],
+                      ),
+                      Icon(Icons.arrow_forward),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            firstTrip.destinationCityName,
+                            style: TextStyle(
+                              fontSize: 18.0,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text('Destination City'),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: trips.length,
+                    itemBuilder: (context, index) {
+                      Trip trip = trips[index];
+                      return Card(
+                        elevation: 6.0,
+                        shadowColor: Colors.blueGrey[100],
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15)),
+                        margin: EdgeInsets.all(12.0),
+                        child: Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${trip.sourceCityName} to ${trip.destinationCityName}',
+                                style: TextStyle(
+                                  fontSize: 18.0,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue[800],
+                                ),
+                              ),
+                              SizedBox(height: 8.0),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Date: ${trip.tripDate}',
+                                    style: TextStyle(fontSize: 14.0),
+                                  ),
+                                  Text(
+                                    '${trip.remainingSeats} seats left',
                                     style: TextStyle(
-                                        color:
-                                            theme.colorScheme.primaryContainer,
-                                        fontSize: 15.fSize,
-                                        fontFamily: 'Nunito',
-                                        fontWeight: FontWeight.w400)))
-                          ])),
-                      Padding(
-                          padding: EdgeInsets.only(left: 45.h),
-                          child: SizedBox(
-                              height: 16.v,
-                              child:
-                                  VerticalDivider(width: 2.h, thickness: 2.v))),
-                      Padding(
-                          padding: EdgeInsets.only(left: 32.h),
-                          child: Row(children: [
-                            CustomIconButton(
-                                height: 28.adaptSize,
-                                width: 28.adaptSize,
-                                padding: EdgeInsets.all(5.h),
-                                child: CustomImageView(
-                                    imagePath:
-                                        ImageConstant.imgMapPinWhiteA700)),
-                            Padding(
-                                padding: EdgeInsets.only(
-                                    left: 8.h, top: 3.v, bottom: 3.v),
-                                child: Text("Safi",
+                                      color: Colors.blue[800],
+                                      fontSize: 14.0,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 8.0),
+                              Text(
+                                'Driver: ${trip.userName}',
+                                style: TextStyle(fontSize: 14.0),
+                              ),
+                              SizedBox(height: 16.0),
+                              Container(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    // Implement booking logic
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    foregroundColor: Colors.white,
+                                    primary: Colors.blue[800],
+                                    padding:
+                                        EdgeInsets.symmetric(vertical: 12.0),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30.0),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Book Now',
                                     style: TextStyle(
-                                        color:
-                                            theme.colorScheme.primaryContainer,
-                                        fontSize: 15.fSize,
-                                        fontFamily: 'Nunito',
-                                        fontWeight: FontWeight.w400)))
-                          ])),
-                      SizedBox(height: 15.v),
-                      Divider(color: appTheme.gray400),
-                      SizedBox(height: 14.v),
-                      Container(
-                          height: 153.adaptSize,
-                          width: 153.adaptSize,
-                          margin: EdgeInsets.only(left: 28.h),
-                          child:
-                              Stack(alignment: Alignment.topCenter, children: [
-                            Align(
-                                alignment: Alignment.bottomCenter,
-                                child: Container(
-                                    decoration: AppDecoration.outlinePrimary1
-                                        .copyWith(
-                                            borderRadius: BorderRadiusStyle
-                                                .customBorderBL16),
-                                    child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          SizedBox(height: 22.v),
-                                          Text("Houssam",
-                                              style: TextStyle(
-                                                  color: theme.colorScheme
-                                                      .primaryContainer,
-                                                  fontSize: 12.fSize,
-                                                  fontFamily: 'Nunito',
-                                                  fontWeight: FontWeight.w400)),
-                                          Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: [
-                                                CustomImageView(
-                                                    imagePath:
-                                                        ImageConstant.imgStar,
-                                                    height: 8.adaptSize,
-                                                    width: 8.adaptSize,
-                                                    margin:
-                                                        EdgeInsets.symmetric(
-                                                            vertical: 2.v)),
-                                                Padding(
-                                                    padding: EdgeInsets.only(
-                                                        left: 1.h),
-                                                    child: Text("4.5 (2)",
-                                                        style: TextStyle(
-                                                            color: appTheme
-                                                                .orange400,
-                                                            fontSize: 8.fSize,
-                                                            fontFamily:
-                                                                'Nunito',
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .w400))),
-                                                CustomImageView(
-                                                    imagePath: ImageConstant
-                                                        .imgVector64,
-                                                    height: 10.v,
-                                                    width: 1.h,
-                                                    margin: EdgeInsets.only(
-                                                        left: 5.h)),
-                                                CustomImageView(
-                                                    imagePath: ImageConstant
-                                                        .imgUberxRemovebgPreview,
-                                                    height: 12.v,
-                                                    width: 21.h,
-                                                    margin: EdgeInsets.only(
-                                                        left: 1.h)),
-                                                Padding(
-                                                    padding: EdgeInsets.only(
-                                                        left: 2.h),
-                                                    child: Text("Swift",
-                                                        style: TextStyle(
-                                                            color: theme
-                                                                .colorScheme
-                                                                .primaryContainer,
-                                                            fontSize: 8.fSize,
-                                                            fontFamily:
-                                                                'Nunito',
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .w500)))
-                                              ]),
-                                          SizedBox(height: 1.v),
-                                          Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.end,
-                                              children: [
-                                                CustomImageView(
-                                                    imagePath:
-                                                        ImageConstant.imgClock3,
-                                                    height: 10.adaptSize,
-                                                    width: 10.adaptSize,
-                                                    margin: EdgeInsets.only(
-                                                        top: 4.v, bottom: 3.v)),
-                                                Padding(
-                                                    padding: EdgeInsets.only(
-                                                        left: 2.h,
-                                                        top: 4.v,
-                                                        bottom: 2.v),
-                                                    child: Text("07:30 Pm",
-                                                        style: TextStyle(
-                                                            color: theme
-                                                                .colorScheme
-                                                                .primaryContainer,
-                                                            fontSize: 8.fSize,
-                                                            fontFamily:
-                                                                'Nunito',
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .w500))),
-                                                Container(
-                                                    height: 18.v,
-                                                    width: 66.h,
-                                                    margin: EdgeInsets.only(
-                                                        left: 28.h),
-                                                    child: Align(
-                                                        alignment: Alignment
-                                                            .centerRight,
-                                                        child: Text("100 MAD",
-                                                            style: TextStyle(
-                                                                color: appTheme
-                                                                    .tealA400,
-                                                                fontSize:
-                                                                    10.fSize,
-                                                                fontFamily:
-                                                                    'Nunito',
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w800))))
-                                              ]),
-                                          SizedBox(height: 1.v),
-                                          CustomElevatedButton(
-                                              height: 23.v,
-                                              width: 153.h,
-                                              text: "Book Now",
-                                              buttonStyle: CustomButtonStyles
-                                                  .outlinePrimaryBL16,
-                                              onPressed: () {
-                                                navigateToRideDetails(context);
-                                              })
-                                        ]))),
-                            Align(
-                                alignment: Alignment.topCenter,
-                                child: Container(
-                                    decoration: AppDecoration.fillLightBlueA
-                                        .copyWith(
-                                            borderRadius: BorderRadiusStyle
-                                                .customBorderTL16),
-                                    child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Container(
-                                            height: 21.v,
-                                            width: 76.h,
-                                            decoration: BoxDecoration(
-                                              color: Colors
-                                                  .blue, // Set button background color
-                                              borderRadius: BorderRadius.circular(
-                                                  8.0), // Set button border radius
-                                            ),
-                                            child: Material(
-                                              color: Colors.transparent,
-                                              child: InkWell(
-                                                child: Center(
-                                                  child: Text(
-                                                    "2 Seats Left",
-                                                    style: TextStyle(
-                                                      color: Colors
-                                                          .white, // Set text color to white
-                                                      fontSize:
-                                                          10.0, // Set text size
-                                                      fontWeight: FontWeight
-                                                          .bold, // Set text weight
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          SizedBox(height: 34.v),
-                                        ]))),
-                            CustomImageView(
-                                imagePath:
-                                    ImageConstant.imgImg20210322000833744,
-                                height: 51.v,
-                                width: 50.h,
-                                radius: BorderRadius.circular(25.h),
-                                alignment: Alignment.topCenter,
-                                margin: EdgeInsets.only(top: 27.v))
-                          ])),
-                      SizedBox(height: 5.v)
-                    ]))));
+                                      fontSize: 16.0,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
   }
 
   /// Section Widget
@@ -287,5 +234,37 @@ class SelectRideScreen extends StatelessWidget {
   /// Navigates to the riderDetailScreen when the action is triggered.
   navigateToRideDetails(BuildContext context) {
     Navigator.pushNamed(context, AppRoutes.riderDetailScreen);
+  }
+}
+
+class Trip {
+  final String id;
+  final String sourceCityName;
+  final String destinationCityName;
+  final String tripDate;
+  final int seats;
+  final int remainingSeats;
+  final String userName; // User's username
+
+  Trip({
+    required this.id,
+    required this.sourceCityName,
+    required this.destinationCityName,
+    required this.tripDate,
+    required this.seats,
+    required this.remainingSeats,
+    required this.userName,
+  });
+
+  factory Trip.fromJson(Map<String, dynamic> json) {
+    return Trip(
+      id: json['id'],
+      sourceCityName: json['source']['cityName'],
+      destinationCityName: json['destination']['cityName'],
+      tripDate: json['tripDate'],
+      seats: json['seats'],
+      remainingSeats: json['remainigSeats'],
+      userName: json['user']['userName'],
+    );
   }
 }

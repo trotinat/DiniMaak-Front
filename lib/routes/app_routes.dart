@@ -39,7 +39,10 @@ class AppRoutes {
     signUpScreen: (context) => SignUpScreen(),
     pickupAndDestinationSelectorScreen: (context) =>
         PickupAndDestinationSelectorScreen(),
-    selectRideScreen: (context) => SelectRideScreen(),
+    selectRideScreen: (context) => SelectRideScreen(
+        fromCity: 'defaultFromCityValue',
+        toCity: 'defaultToCityValue',
+      ),
     riderDetailScreen: (context) => RiderDetailScreen(),
     walletScreen: (context) => WalletScreen(),
     upcomingScreen: (context) => UpcomingScreen(),

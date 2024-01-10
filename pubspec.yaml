@@ -6,6 +6,9 @@ environment:
 dependencies: 
   flutter: 
     sdk: flutter
+  http: ^0.13.3
+  another_flushbar: ^1.12.30
+  shared_preferences: ^2.2.2
   cached_network_image: ^3.3.0
   flutter_svg: ^2.0.9
   smooth_page_indicator: ^1.1.0

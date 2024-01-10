@@ -2,6 +2,8 @@ class ImageConstant {
   // Image folder path
   static String imagePath = 'assets/images';
 
+  static String background = '$imagePath/bmw.jpg';
+
   // Onboarding Screen One images
   static String imgGroup = '$imagePath/12516928_5006409.svg';
 

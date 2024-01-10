@@ -3,6 +3,7 @@ import 'package:houssam_s_application4/core/app_export.dart';
 import 'package:houssam_s_application4/widgets/custom_elevated_button.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
+
 class OnboardingScreenOneScreen extends StatelessWidget {
   const OnboardingScreenOneScreen({Key? key}) : super(key: key);
 

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:houssam_s_application4/core/app_export.dart';
 import 'package:houssam_s_application4/widgets/custom_elevated_button.dart';
 import 'package:houssam_s_application4/widgets/custom_text_form_field.dart';
+import 'dart:convert'; // Import for jsonEncode
+import 'package:http/http.dart' as http;
 
 // ignore_for_file: must_be_immutable
 class SignUpScreen extends StatelessWidget {
@@ -16,6 +18,47 @@ class SignUpScreen extends StatelessWidget {
   TextEditingController passwordController = TextEditingController();
 
   GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  Widget _buildSignUp(BuildContext context) {
+    return CustomElevatedButton(
+        text: "Sign Up",
+        onPressed: () {
+          signUp(context);
+        });
+  }
+
+  /// Sign Up function
+  Future<void> signUp(BuildContext context) async {
+    var url = Uri.parse('https://dinimaak.azurewebsites.net/register');
+    var headers = {'Content-Type': 'application/json'};
+    var body = jsonEncode({
+      'email': emailController.text,
+      'password': passwordController.text,
+    });
+
+    try {
+      var response = await http.post(url, headers: headers, body: body);
+      print(response.statusCode);
+      if (response.statusCode == 200) {
+        navigateToLogin(context);
+      } else {
+        // Handle error response
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Registration failed'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Network error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +103,7 @@ class SignUpScreen extends StatelessWidget {
                                               fontFamily: 'Nunito',
                                               fontWeight: FontWeight.w700))),
                                   SizedBox(height: 22.v),
-                                  _buildLogin(context),
+                                  _buildSignUp(context),
                                   SizedBox(height: 24.v),
                                   GestureDetector(
                                       onTap: () {

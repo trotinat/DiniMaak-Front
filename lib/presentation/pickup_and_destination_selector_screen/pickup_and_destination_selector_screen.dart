@@ -1,198 +1,154 @@
 import 'package:flutter/material.dart';
 import 'package:houssam_s_application4/core/app_export.dart';
 import 'package:houssam_s_application4/widgets/custom_elevated_button.dart';
-import 'package:houssam_s_application4/widgets/custom_text_form_field.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:houssam_s_application4/presentation/select_ride_screen/select_ride_screen.dart';
+import '../sidebar_drawer/user_drawer.dart';
 
-// ignore_for_file: must_be_immutable
-class PickupAndDestinationSelectorScreen extends StatelessWidget {
-  PickupAndDestinationSelectorScreen({Key? key}) : super(key: key);
+class PickupAndDestinationSelectorScreen extends StatefulWidget {
+  @override
+  _PickupAndDestinationSelectorScreenState createState() =>
+      _PickupAndDestinationSelectorScreenState();
+}
 
-  TextEditingController marrakechLocationController = TextEditingController();
+class _PickupAndDestinationSelectorScreenState
+    extends State<PickupAndDestinationSelectorScreen> {
+  String? selectedDepartureCityId;
+  String? selectedDestinationCityId;
+  List<City> cities = [];
 
-  TextEditingController safiLocationController = TextEditingController();
+  @override
+  void initState() {
+    super.initState();
+    fetchCities();
+  }
+
+  Future<void> fetchCities() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('accessToken') ?? '';
+
+    final response = await http.get(
+      Uri.parse('https://dinimaak.azurewebsites.net/api/city'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      List<dynamic> cityJson = json.decode(response.body)['result'];
+      setState(() {
+        cities = cityJson.map((json) => City.fromJson(json)).toList();
+      });
+      print('Cities loaded: ${cities.length}');
+    } else {
+      print('Failed to load cities');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-        child: Scaffold(
-            resizeToAvoidBottomInset: false,
-            body: Container(
-                width: double.maxFinite,
-                padding: EdgeInsets.symmetric(horizontal: 20.h, vertical: 46.v),
-                child: Column(children: [
-                  Text("My Trips",
-                      style: TextStyle(
-                          color: theme.colorScheme.primaryContainer,
-                          fontSize: 24.fSize,
-                          fontFamily: 'Nunito',
-                          fontWeight: FontWeight.w700)),
-                  SizedBox(height: 14.v),
-                  _buildFiveRow(context),
-                  Spacer(flex: 39),
-                  Align(
-                      alignment: Alignment.centerLeft,
-                      child: Padding(
-                          padding: EdgeInsets.only(left: 71.h),
-                          child: Text("Select your ride",
-                              style: TextStyle(
-                                  color: theme.colorScheme.primaryContainer,
-                                  fontSize: 24.fSize,
-                                  fontFamily: 'Nunito',
-                                  fontWeight: FontWeight.w700)))),
-                  SizedBox(height: 47.v),
-                  _buildMarrakechLocation(context),
-                  SizedBox(height: 13.v),
-                  _buildSafiLocation(context),
-                  SizedBox(height: 49.v),
-                  _buildContinueButton(context),
-                  Spacer(flex: 60),
-                  _buildLogoutButton(context)
-                ]))));
-  }
-
-  /// Section Widget
-  Widget _buildUpcomingButton(BuildContext context) {
-    return Expanded(
-        child: CustomElevatedButton(
-            height: 46.v,
-            text: "Upcoming",
-            margin: EdgeInsets.only(right: 10.h),
-            buttonStyle: CustomButtonStyles.fillLightBlueA,
-            onPressed: () {
-              navigateToUpcoming(context);
-            }));
-  }
-
-  /// Section Widget
-  Widget _buildPastTripsButton(BuildContext context) {
-    return Expanded(
-        child: CustomElevatedButton(
-            height: 46.v,
-            text: "Past trips",
-            margin: EdgeInsets.only(left: 10.h),
-            buttonStyle: CustomButtonStyles.fillLightBlueA,
-            onPressed: () {
-              navigateToCompleted(context);
-            }));
-  }
-
-  /// Section Widget
-  Widget _buildFiveRow(BuildContext context) {
-    return Padding(
-        padding: EdgeInsets.only(left: 3.h, right: 12.h),
-        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          _buildUpcomingButton(context),
-          _buildPastTripsButton(context)
-        ]));
-  }
-
-  /// Section Widget
-  Widget _buildMarrakechLocation(BuildContext context) {
-    return Padding(
-        padding: EdgeInsets.only(left: 6.h, right: 5.h),
-        child: CustomTextFormField(
-            controller: marrakechLocationController,
-            hintText: "Marrakech",
-            prefix: Container(
-                margin: EdgeInsets.fromLTRB(9.h, 13.v, 6.h, 9.v),
-                child: CustomImageView(
-                    imagePath: ImageConstant.imgMappin,
-                    height: 24.adaptSize,
-                    width: 24.adaptSize)),
-            prefixConstraints: BoxConstraints(maxHeight: 46.v),
-            contentPadding:
-                EdgeInsets.only(top: 12.v, right: 30.h, bottom: 12.v),
-            borderDecoration: TextFormFieldStyleHelper.fillWhiteA));
-  }
-
-  /// Section Widget
-  Widget _buildSafiLocation(BuildContext context) {
-    return Padding(
-        padding: EdgeInsets.only(left: 6.h, right: 5.h),
-        child: CustomTextFormField(
-            controller: safiLocationController,
-            hintText: "Safi",
-            textInputAction: TextInputAction.done,
-            prefix: Container(
-                margin: EdgeInsets.fromLTRB(9.h, 13.v, 6.h, 9.v),
-                child: CustomImageView(
-                    imagePath: ImageConstant.imgLocate,
-                    height: 24.adaptSize,
-                    width: 24.adaptSize)),
-            prefixConstraints: BoxConstraints(maxHeight: 46.v),
-            suffix: Container(
-                margin: EdgeInsets.fromLTRB(30.h, 16.v, 12.h, 15.v),
-                child: CustomImageView(
-                    imagePath: ImageConstant.imgGgmenuleft,
-                    height: 15.adaptSize,
-                    width: 15.adaptSize)),
-            suffixConstraints: BoxConstraints(maxHeight: 46.v),
-            contentPadding: EdgeInsets.symmetric(vertical: 12.v),
-            borderDecoration: TextFormFieldStyleHelper.fillWhiteA));
-  }
-
-  /// Section Widget
-  Widget _buildContinueButton(BuildContext context) {
-    return CustomElevatedButton(
-        text: "Continue",
-        onPressed: () {
-          navigateToRides(context);
-        });
-  }
-
-  Widget _buildLogoutButton(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20.0),
-      child: ElevatedButton.icon(
-        style: ElevatedButton.styleFrom(
-          primary: Colors.red, // Change the button background color
-          onPrimary: Colors.white, // Change the text color
-          padding:
-              EdgeInsets.symmetric(vertical: 16.0), // Adjust the button padding
-          shape: RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(8.0), // Adjust the button border radius
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text("My Trips"),
+          leading: Builder(
+            builder: (BuildContext context) {
+              return IconButton(
+                icon: Icon(Icons.menu),
+                onPressed: () => Scaffold.of(context).openDrawer(),
+              );
+            },
           ),
         ),
-        onPressed: () {
-          logout(context);
-        },
-        icon: Icon(
-          Icons.exit_to_app, // Choose an icon (here, exit_to_app icon)
-          size: 24.0, // Adjust the icon size
-        ),
-        label: Text(
-          'Logout',
-          style: TextStyle(fontSize: 16.0), // Adjust the text size
+        drawer: UserDrawer(),
+        body: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(horizontal: 20.h, vertical: 46.v),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                "Select your ride",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: theme.colorScheme.primaryContainer,
+                  fontSize: 24.fSize,
+                  fontFamily: 'Nunito',
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              SizedBox(height: 30.v),
+              _buildCityDropdown('Departure City', (cityId) {
+                selectedDepartureCityId = cityId;
+              }),
+              SizedBox(height: 20.v),
+              _buildCityDropdown('Destination City', (cityId) {
+                selectedDestinationCityId = cityId;
+              }),
+              SizedBox(height: 30.v),
+              _buildContinueButton(context),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  void logout(BuildContext context) {
-    // Perform logout actions here, such as clearing user data, resetting authentication, etc.
-
-    // Navigate to the login screen after logout
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      AppRoutes.loginScreen,
-      (route) =>
-          false, // This line removes all existing routes and only keeps the login screen
+  Widget _buildCityDropdown(String hintText, Function(String?) onChanged) {
+    return DropdownButtonFormField<String>(
+      decoration: InputDecoration(
+        hintText: hintText,
+      ),
+      value: null,
+      items: cities.map<DropdownMenuItem<String>>((City city) {
+        return DropdownMenuItem<String>(
+          value: city.id,
+          child: Text(
+            city.cityName,
+            style: TextStyle(color: Colors.black),
+          ),
+        );
+      }).toList(),
+      onChanged: onChanged,
     );
   }
 
-  /// Navigates to the upcomingScreen when the action is triggered.
-  navigateToUpcoming(BuildContext context) {
-    Navigator.pushNamed(context, AppRoutes.upcomingScreen);
+  Widget _buildContinueButton(BuildContext context) {
+    return CustomElevatedButton(
+      text: "Continue",
+      onPressed: () {
+        if (selectedDepartureCityId != null &&
+            selectedDestinationCityId != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SelectRideScreen(
+                fromCity: selectedDepartureCityId!,
+                toCity: selectedDestinationCityId!,
+              ),
+            ),
+          );
+        } else {
+          // Handle null selection
+        }
+      },
+    );
   }
+}
 
-  /// Navigates to the pastTripsScreen when the action is triggered.
-  navigateToCompleted(BuildContext context) {
-    Navigator.pushNamed(context, AppRoutes.pastTripsScreen);
-  }
+class City {
+  final String id;
+  final String cityName;
 
-  /// Navigates to the selectRideScreen when the action is triggered.
-  navigateToRides(BuildContext context) {
-    Navigator.pushNamed(context, AppRoutes.selectRideScreen);
+  City({required this.id, required this.cityName});
+
+  factory City.fromJson(Map<String, dynamic> json) {
+    return City(
+      id: json['id'],
+      cityName: json['cityName'],
+    );
   }
 }
