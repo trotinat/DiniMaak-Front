@@ -56,6 +56,26 @@ class _SelectRideScreenState extends State<SelectRideScreen> {
     }
   }
 
+  Future<void> joinTrip(String tripId, BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('accessToken') ?? '';
+    final String url =
+        'https://dinimaak.azurewebsites.net/api/trip/join/$tripId';
+
+    final response = await http.put(
+      Uri.parse(url),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+    print(response.statusCode);
+    if (response.statusCode == 200) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("You've registred in this trip")));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -176,8 +196,8 @@ class _SelectRideScreenState extends State<SelectRideScreen> {
                               Container(
                                 width: double.infinity,
                                 child: ElevatedButton(
-                                  onPressed: () {
-                                    // Implement booking logic
+                                  onPressed: () async {
+                                    await joinTrip(trip.id, context);
                                   },
                                   style: ElevatedButton.styleFrom(
                                     foregroundColor: Colors.white,

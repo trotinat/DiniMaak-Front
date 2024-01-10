@@ -24,10 +24,9 @@ class _UserDrawerState extends State<UserDrawer> {
   Future<void> fetchUserData() async {
     try {
       var url = Uri.parse('https://dinimaak.azurewebsites.net/api/user');
-      String accessToken = await getAccessToken(); // Retrieve the access token
+      String accessToken = await getAccessToken();
       var headers = {
-        'Authorization':
-            'Bearer $accessToken', // Include the access token in headers
+        'Authorization': 'Bearer $accessToken',
       };
       var response = await http.get(url, headers: headers);
 
